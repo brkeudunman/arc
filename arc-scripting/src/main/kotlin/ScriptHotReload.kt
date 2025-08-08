@@ -63,7 +63,8 @@ class ScriptHotReload(
                     }
 
                     is FileEvent.Deleted -> {
-                        // TODO
+                        if (event.file.isDirectory) return@watch
+                        scriptAgentLoader.unloadAgents(event.file)
                     }
                 }
             }.onFailure { logError(it) }

@@ -14,3 +14,9 @@ data class AgentLoadedEvent(
     val name: String,
     val errorMessage: String? = null,
 ) : Event by BaseEvent()
+
+
+data class AgentUnloadedEvent(
+    val name: String,
+    val errorMessage: String? = null,
+) : Event by BaseEvent()

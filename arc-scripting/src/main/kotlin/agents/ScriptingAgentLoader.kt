@@ -88,4 +88,44 @@ class ScriptingAgentLoader(
     fun loadAgentsFromFolder(folder: File) {
         folder.walk().filter { it.isFile }.forEach { loadAgents(it) }
     }
+
+    /**
+     * Unloads agents that were loaded from the specified file.
+     * This is used for hot-reload when files are deleted.
+     */
+    fun unloadAgents(file: File) {
+        if (!file.name.endsWith(".agent.kts")) return
+        
+        try {
+            val context = BasicAgentDefinitionContext(agentFactory)
+            val result = agentScriptEngine.eval(file.readText(), context)
+            
+            if (result is Success && context.agents.isNotEmpty()) {
+                val agentNames = context.agents.map { it.name }
+                log.info("Unloading the following agents (scripting): ${agentNames.joinToString()}")
+                
+                agentNames.forEach { agentName ->
+                    agents.remove(agentName)
+                    eventPublisher?.publish(AgentUnloadedEvent(agentName))
+                }
+            }
+        } catch (e: Exception) {
+            log.warn("Failed to unload agents from file: ${file.name}!", e)
+            eventPublisher?.publish(AgentUnloadedEvent(file.name, e.message ?: "Unknown error"))
+        }
+    }
+
+    /**
+     * Unloads agents that were loaded from the specified file.
+     * This is used for hot-reload when files are deleted.
+     */
+    fun unloadAgentsFromFolder(file: File) {
+        if (file.isFile) {
+            unloadAgents(file)
+        } else {
+            file.walk()
+                .filter { it.isFile && it.name.endsWith(".agent.kts") }
+                .forEach { unloadAgents(it) }
+        }
+    }
 }
